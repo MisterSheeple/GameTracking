@@ -129,6 +129,7 @@ runs:
             path: |
               ${{ runner.temp }}/commit_summary_transcript_*.jsonl
               ${{ runner.temp }}/commit_summary_notes/
+              ${{ runner.temp }}/commit_summary_notes_wif/
             if-no-files-found: ignore
             retention-days: 7
 

@@ -20,6 +20,11 @@ result() {
 	jq -r 'select(.type == "result") | .result' "$RUNNER_TEMP/commit_summary_transcript_$1.jsonl"
 }
 
+# Failed runs still report subtype "success", only is_error tells them apart
+succeeded() {
+	jq -se 'any(.[]; .type == "result" and .is_error == false)' "$RUNNER_TEMP/commit_summary_transcript_$1.jsonl" > /dev/null
+}
+
 fetch_identity_token() {
 	curl -fsS -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=https://api.anthropic.com" \
 		| jq -er .value > "$ANTHROPIC_IDENTITY_TOKEN_FILE.tmp" \
@@ -42,10 +47,14 @@ if [[ -n "$ANTHROPIC_FEDERATION_RULE_ID" && -n "$ACTIONS_ID_TOKEN_REQUEST_URL" ]
 		refresher=$!
 
 		# CLAUDE_CODE_OAUTH_TOKEN takes precedence over federation credentials
-		if (unset CLAUDE_CODE_OAUTH_TOKEN; run_claude wif); then
+		if (unset CLAUDE_CODE_OAUTH_TOKEN; run_claude wif) && succeeded wif; then
 			used=wif
 		else
 			echo "::warning::Workload Identity Federation run failed, running again with CLAUDE_CODE_OAUTH_TOKEN: $(result wif | tail -n 1)"
+
+			# Notes of the failed run are kept for the artifact but must not be picked up by the rerun
+			mv "$RUNNER_TEMP/commit_summary_notes" "$RUNNER_TEMP/commit_summary_notes_wif"
+			mkdir -p "$RUNNER_TEMP/commit_summary_notes"
 		fi
 
 		kill "$refresher"
@@ -62,7 +71,7 @@ if [[ -z "$used" ]]; then
 
 	rm -f "$GITHUB_WORKSPACE/commit_summary.md"
 	used=oauth
-	run_claude oauth
+	(unset ANTHROPIC_FEDERATION_RULE_ID ANTHROPIC_ORGANIZATION_ID ANTHROPIC_SERVICE_ACCOUNT_ID ANTHROPIC_IDENTITY_TOKEN_FILE; run_claude oauth)
 fi
 
 echo "Authenticated with: $used" >> "$GITHUB_STEP_SUMMARY"

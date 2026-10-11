@@ -1,5 +1,5 @@
 name: Commit summary
-description: Summarises a GameTracking commit with Claude Code and posts it as a commit comment. Reads the token from the CLAUDE_CODE_OAUTH_TOKEN environment variable (made with claude setup-token).
+description: Summarises a GameTracking commit with Claude Code and posts it as a commit comment. Authenticates with Workload Identity Federation when the ANTHROPIC_FEDERATION_RULE_ID, ANTHROPIC_ORGANIZATION_ID and ANTHROPIC_SERVICE_ACCOUNT_ID environment variables are set and the job has id-token write permission, and falls back to the CLAUDE_CODE_OAUTH_TOKEN environment variable (made with claude setup-token).
 
 inputs:
     sha:
@@ -111,18 +111,11 @@ runs:
             done
             echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
-        # The transcript and the workers' notes are kept as an artifact, so skipped steps can be audited
+        # Tries Workload Identity Federation first and runs again with CLAUDE_CODE_OAUTH_TOKEN when it is not set up or fails.
+        # The transcripts and the workers' notes are kept as an artifact, so skipped steps can be audited
         - name: Run Claude Code
           shell: bash
-          run: |
-            set -o pipefail
-            claude -p "$(cat "$RUNNER_TEMP/commit_summary_prompt.md")" \
-              --model "${{ inputs.model }}" \
-              --agents "$RUNNER_TEMP/commit_summary_agents.json" \
-              --permission-mode auto \
-              --output-format stream-json \
-              --verbose < /dev/null > "$RUNNER_TEMP/commit_summary_transcript.jsonl"
-            jq -r 'select(.type == "result") | .result' "$RUNNER_TEMP/commit_summary_transcript.jsonl" | tee -a "$GITHUB_STEP_SUMMARY"
+          run: bash "$GITHUB_ACTION_PATH/run_claude.sh" "${{ inputs.model }}"
           # Set-diffing big string dumps can take minutes, so commands get longer than the default 2 minute timeout
           env:
             BASH_DEFAULT_TIMEOUT_MS: '600000'
@@ -134,7 +127,7 @@ runs:
           with:
             name: commit-summary-transcript
             path: |
-              ${{ runner.temp }}/commit_summary_transcript.jsonl
+              ${{ runner.temp }}/commit_summary_transcript_*.jsonl
               ${{ runner.temp }}/commit_summary_notes/
             if-no-files-found: ignore
             retention-days: 7

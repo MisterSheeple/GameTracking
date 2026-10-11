@@ -38,9 +38,8 @@ on:
 jobs:
     gametracking-setup:
         runs-on: ${{ inputs.run-on-windows && 'windows-latest' || 'ubuntu-latest' }}
-        permissions:
-            contents: write
-            statuses: write
+        # Permissions come from the calling job: contents and statuses write, plus id-token write for commit summaries with Workload Identity Federation.
+        # Requesting id-token here would fail the whole run for callers that do not grant it.
         steps:
 
         # Checkout and download tools
@@ -195,12 +194,15 @@ jobs:
                 GH_TOKEN: ${{ secrets.DISPATCH_TOKEN_SOURCE2WIKI }}
 
         - name: Summarize commit
-          if: ${{ env.CLAUDE_CODE_OAUTH_TOKEN != '' && steps.set-status.outputs.sha && steps.before.outputs.sha != steps.set-status.outputs.sha }}
+          if: ${{ (env.ANTHROPIC_FEDERATION_RULE_ID != '' || env.CLAUDE_CODE_OAUTH_TOKEN != '') && steps.set-status.outputs.sha && steps.before.outputs.sha != steps.set-status.outputs.sha }}
           continue-on-error: true
           timeout-minutes: 120
           uses: ./.github/actions/commit-summary
           with:
             sha: ${{ steps.set-status.outputs.sha }}
           env:
+            ANTHROPIC_FEDERATION_RULE_ID: ${{ secrets.ANTHROPIC_FEDERATION_RULE_ID }}
+            ANTHROPIC_ORGANIZATION_ID: ${{ secrets.ANTHROPIC_ORGANIZATION_ID }}
+            ANTHROPIC_SERVICE_ACCOUNT_ID: ${{ secrets.ANTHROPIC_SERVICE_ACCOUNT_ID }}
             CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
 

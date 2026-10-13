@@ -5,7 +5,7 @@ You cover one area of the commit, named in your task with its file list. Read ev
 **Notes.** Write your notes to `<notes>/<area>.md`, with the area name from your task, in this order:
 1. `STATUS`: `FILES <read to the end>/<listed>`; `UNACCOUNTED: <paths not read to the end, or none>`; `UNCHECKED: <names called new or removed without the check, or none>`; `LEADS: <names for other areas to look up, or none>`.
 2. One line per file: `noise: <why>`, or the findings it supports.
-3. For strings dumps, schemas and asset lists, an identifier table with one row per added or removed name that passed the check: `| name | file | new / removed | other games | what it is |`. Fill "what it is" for every row from evidence: its UI label or description, its neighbouring strings (`DumpStrings -binary`), or related data. Never group names in one row.
+3. For strings dumps, schemas and asset lists, an identifier table with one row per added or removed name that passed the check: `| name | file | new / removed | other games | what it is |`. Fill "what it is" for every row from evidence: its UI label or description, its neighbouring strings (`DumpStrings dump`), or related data. Never group names in one row.
 4. Findings, each as a draft comment line following "Writing", ready to paste: one line per change, never a list of names under one heading. A catch-all line ("other: …", "misc: …") is not a draft line: split it into a line per change. Evidence strength sets the wording ("strings suggest …", "only in server strings"), never whether a line exists: a name that passed the check gets its own line even when strings are the only evidence. Under each line, indented: the evidence lines, the check command and its output for every "new" and "removed", and what the change means for players or dataminers.
 
 The notes are for the writer, who never sees the diff, so be generous under each draft line: the English text that describes it, related values in the same block, what existed before, and how it connects to other changes you saw. The writer trims; it can't add what you left out.
@@ -57,7 +57,7 @@ O=$(mktemp); git -C <repo> ls-tree -r --name-only HEAD | grep -E '_strings\.txt$
 sort -u names.txt | comm -12 - $O   # names that repo already has
 ```
 
-Strings files are binary-ish: search them with `git grep -a`, and strip leading junk bytes before set-diffing (`sed -E 's/^[^A-Za-z_#]+//'`). Junk bytes can be letters too, so a name removed and re-added with a different stray prefix is unchanged. Strings dumps are sorted, which loses context: `<tools>/DumpStrings -binary <binary> | grep -n -C8 -F '<name>'` on this build's downloaded binary (ignored by git, listed in `files.json`; don't open the partial VPKs) shows a string's neighbours, which often reveals its feature. Use it to confirm, not to find, since the previous build's binaries aren't there.
+Strings files are binary-ish: search them with `git grep -a`, and strip leading junk bytes before set-diffing (`sed -E 's/^[^A-Za-z_#]+//'`). Junk bytes can be letters too, so a name removed and re-added with a different stray prefix is unchanged. Strings dumps are sorted, which loses context; the unsorted `dump` output keeps section order: `<tools>/DumpStrings dump <binary> | grep -n -C8 -F '<name>'` on this build's downloaded binary (ignored by git, listed in `files.json`; don't open the partial VPKs) shows a string's neighbours, which often reveals its feature. Use it to confirm, not to find, since the previous build's binaries aren't there.
 
 ## Repo notes
 

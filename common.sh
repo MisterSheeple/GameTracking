@@ -17,7 +17,6 @@ VRF_PATH="$ROOT_DIR/tools/exe/Source2Viewer/Source2Viewer-CLI${EXE_SUFFIX}"
 PROTOBUF_DUMPER_PATH="$ROOT_DIR/tools/exe/ProtobufDumper/ProtobufDumper${EXE_SUFFIX}"
 DUMP_STRINGS_PATH="$ROOT_DIR/tools/exe/DumpStrings${EXE_SUFFIX}"
 STEAM_FILE_DOWNLOADER_PATH="$ROOT_DIR/tools/exe/SteamFileDownloader/SteamFileDownloader${EXE_SUFFIX}"
-FIX_ENCODING_PATH="$ROOT_DIR/tools/exe/FixEncoding${EXE_SUFFIX}"
 
 # Allow disabling git operations by passing "no-git" as the first or second argument
 DO_GIT=1
@@ -67,8 +66,8 @@ _ProcessBinary ()
 	mkdir -p "$my_tmp"
 	"$PROTOBUF_DUMPER_PATH" "$file" "$my_tmp/" > /dev/null
 
-	# Extract readable strings from the binary, sort and deduplicate them
-	"$DUMP_STRINGS_PATH" -binary "$file" | sort --unique > "$(_StringsPath "$file" "$ext")"
+	# Extract readable strings from the binary as sorted unique lines, skipping protobuf descriptors dumped above
+	"$DUMP_STRINGS_PATH" dump -sort -mask-protobufs "$file" > "$(_StringsPath "$file" "$ext")"
 }
 
 # ProcessDepot - Processes binary files by dumping protobufs and extracting strings.
@@ -128,95 +127,13 @@ ProcessVPK ()
 	echo "::endgroup::"
 }
 
-# _DeduplicateStringsFile - Deduplicates a single strings file against a merged reference.
-# @param $1 - Strings file to deduplicate
-# @param $2 - Merged dedupe reference file
-_DeduplicateStringsFile ()
+# DeduplicateStrings - Removes duplicate string lines from extracted strings files
+#   by filtering out lines that appear in the reference files listed in strings_dedupe.conf.
+DeduplicateStrings ()
 {
-	local target_file="$1"
-	local merged_dedupe="$2"
+	echo "::group::Deduplicating strings"
 
-	# Remove lines present in reference files and replace the original
-	comm -23 "$target_file" "$merged_dedupe" > "$target_file.tmp"
-	mv "$target_file.tmp" "$target_file"
-}
-
-# DeduplicateStringsFrom - Removes duplicate string lines from extracted strings files
-#   by filtering out lines that appear in the provided dedupe reference files.
-# @param -- - Separator between suffixes and reference files
-# @usage DeduplicateStringsFrom .dll .exe -- file1.txt file2.txt
-DeduplicateStringsFrom ()
-{
-	# Split arguments into suffixes (before --) and reference files (after --)
-	local suffixes=()
-	local ref_files=()
-	local found_separator=0
-
-	for arg in "$@"; do
-		if [[ "$arg" == "--" ]]; then
-			found_separator=1
-		elif ((found_separator)); then
-			ref_files+=("$arg")
-		else
-			suffixes+=("$arg")
-		fi
-	done
-
-	echo "::group::Deduplicating strings (${suffixes[*]})"
-
-	# Resolve all dedupe reference files to absolute paths, warn if missing
-	local dedupe_files=()
-	for file in "${ref_files[@]}"; do
-		local resolved
-		resolved="$(realpath "$file")"
-		if [[ -f "$resolved" ]]; then
-			dedupe_files+=("$resolved")
-		else
-			echo "::warning::Dedupe file not found: $file"
-		fi
-	done
-
-	# Merge all reference files into a single sorted set
-	local merged_dedupe
-	merged_dedupe="$(mktemp)"
-	sort --unique --merge "${dedupe_files[@]}" > "$merged_dedupe"
-
-	local max_jobs=10
-	local job_count=0
-
-	for suffix in "${suffixes[@]}"; do
-		# Iterate over all binaries matching the suffix and process their strings files
-		while IFS= read -r -d '' file
-		do
-			# Derive the corresponding _strings.txt path from the binary path
-			local target_file
-			target_file="$(_StringsPath "$(realpath "$file")" "$suffix")"
-
-			# Skip if no strings file exists for this binary
-			if ! [[ -f "$target_file" ]]; then
-				continue
-			fi
-
-			# Don't deduplicate a file against itself
-			for dedupe_file in "${dedupe_files[@]}"; do
-				if [[ "$dedupe_file" = "$target_file" ]]; then
-					continue 2
-				fi
-			done
-
-			_DeduplicateStringsFile "$target_file" "$merged_dedupe" &
-
-			((++job_count))
-			if ((job_count >= max_jobs)); then
-				wait -n
-				((job_count--))
-			fi
-		done <   <(find . -type f -name "*$suffix" -print0)
-	done
-
-	wait
-
-	rm -f "$merged_dedupe"
+	"$DUMP_STRINGS_PATH" dedupe strings_dedupe.conf
 
 	echo "::endgroup::"
 }
@@ -238,13 +155,12 @@ ProcessToolAssetInfo ()
 	echo "::endgroup::"
 }
 
-# FixUCS2 - Converts UCS-2 encoded .txt files to UTF-8 using the FixEncoding tool.
+# FixUCS2 - Converts UTF-16 and UTF-32 encoded .txt files to UTF-8.
 FixUCS2 ()
 {
 	echo "::group::Fixing encodings"
 
-	# Run FixEncoding on all .txt files in parallel (up to 3 at a time)
-	find . -type f -name "*.txt" -print0 | xargs --null --max-lines=1 --max-procs=3 "$FIX_ENCODING_PATH"
+	"$DUMP_STRINGS_PATH" fix-encoding .
 
 	echo "::endgroup::"
 }

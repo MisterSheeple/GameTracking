@@ -43,12 +43,6 @@ cd ../DumpStrings
 go build -buildvcs=false -o "../exe/DumpStrings${EXE_SUFFIX}"
 echo "::endgroup::"
 
-# Fix Encoding
-echo "::group::Build FixEncoding"
-cd ../FixEncoding
-go build -buildvcs=false -o "../exe/FixEncoding${EXE_SUFFIX}"
-echo "::endgroup::"
-
 # Dumper
 echo "::group::Build DumpSource2"
 cd ../DumpSource2
@@ -65,8 +59,7 @@ cd ../
 "$STEAM_FILE_DOWNLOADER_PATH" --version
 "$VRF_PATH" --version
 "$PROTOBUF_DUMPER_PATH" -v
-"$DUMP_STRINGS_PATH"
-"$FIX_ENCODING_PATH"
+"$DUMP_STRINGS_PATH" version
 echo "::endgroup::"
 
 echo "Done."

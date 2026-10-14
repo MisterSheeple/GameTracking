@@ -162,17 +162,28 @@ jobs:
           env:
             GH_TOKEN: ${{ github.token }}
 
+        - name: Create SchemaExplorer token
+          id: schemaexplorer-token
+          if: ${{ inputs.dumpsource2-schema-json != '' && github.repository_owner == 'SteamTracking' && github.ref_name == github.event.repository.default_branch }}
+          uses: actions/create-github-app-token@v3
+          with:
+            client-id: ${{ secrets.STEAMTRACKING_APP_CLIENT_ID }}
+            private-key: ${{ secrets.STEAMTRACKING_APP_PRIVATE_KEY }}
+            owner: ValveResourceFormat
+            repositories: SchemaExplorer
+            permission-contents: write
+
         - name: Checkout DumpSource2 JSON Repo
-          if: ${{ inputs.dumpsource2-schema-json != '' && github.ref_name == github.event.repository.default_branch }}
+          if: ${{ inputs.dumpsource2-schema-json != '' && github.repository_owner == 'SteamTracking' && github.ref_name == github.event.repository.default_branch }}
           uses: actions/checkout@v7
           with:
             fetch-depth: 1
             path: dumps2_json
             repository: 'ValveResourceFormat/SchemaExplorer'
-            token: ${{ secrets.DUMPSOURCE2_EXPLORER_TOKEN }}
+            token: ${{ steps.schemaexplorer-token.outputs.token }}
 
         - name: Push DumpSource2 JSON
-          if: ${{ inputs.dumpsource2-schema-json != '' && github.ref_name == github.event.repository.default_branch }}
+          if: ${{ inputs.dumpsource2-schema-json != '' && github.repository_owner == 'SteamTracking' && github.ref_name == github.event.repository.default_branch }}
           working-directory: ${{ github.workspace }}/dumps2_json/schemas
           shell: bash
           run: |
@@ -181,11 +192,22 @@ jobs:
               "${{ github.workspace }}/tracked_game" \
               "https://github.com/${{ github.repository }}/commit/${{ steps.set-status.outputs.sha }}"
 
+        - name: Create Protobufs token
+          id: protobufs-token
+          if: ${{ github.repository_owner == 'SteamTracking' && github.ref_name == github.event.repository.default_branch }}
+          uses: actions/create-github-app-token@v3
+          with:
+            client-id: ${{ secrets.STEAMTRACKING_APP_CLIENT_ID }}
+            private-key: ${{ secrets.STEAMTRACKING_APP_PRIVATE_KEY }}
+            owner: SteamTracking
+            repositories: Protobufs
+            permission-contents: write
+
         - name: Dispatch sync to ValveProtobufs
-          if: ${{ env.GH_TOKEN != '' && github.ref_name == github.event.repository.default_branch }}
+          if: ${{ github.repository_owner == 'SteamTracking' && github.ref_name == github.event.repository.default_branch }}
           run: gh api repos/SteamTracking/Protobufs/dispatches -f event_type=sync
           env:
-                GH_TOKEN: ${{ secrets.DISPATCH_TOKEN }}
+                GH_TOKEN: ${{ steps.protobufs-token.outputs.token }}
 
         - name: Dispatch app-update to Source2Wiki
           if: ${{ inputs.dispatch-source2wiki && env.GH_TOKEN != '' && github.ref_name == github.event.repository.default_branch && steps.before.outputs.sha != steps.set-status.outputs.sha }}

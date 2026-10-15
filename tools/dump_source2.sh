@@ -52,6 +52,9 @@ fi
 
 if [[ $DUMPER_EXIT_CODE -ne 0 ]]; then
 	echo "::error title=DumpSource2-$1 failed::Exit code $DUMPER_EXIT_CODE"
+
+	# A failed dump may leave a partial or stale schemas.json, which must not be pushed to SchemaExplorer
+	rm -f "$DUMP_DIR/schemas.json"
 fi
 
 echo "::endgroup::"

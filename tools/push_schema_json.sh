@@ -16,6 +16,12 @@ COMMIT_URL="$3"
 NEW_JSON="$SOURCE_DIR/DumpSource2/schemas.json"
 EXISTING_JSON="$SCHEMA_NAME.json"
 
+# DumpSource2 removes schemas.json when it fails
+if [[ ! -f "$NEW_JSON" ]]; then
+	echo "::warning::No schemas.json for $SCHEMA_NAME, skipping"
+	exit 0
+fi
+
 # strip_metadata - Strips revision, version_date, and version_time fields from schema JSON.
 #   Reads from a file argument or stdin. Output is sorted and compact for consistent comparison.
 strip_metadata() {

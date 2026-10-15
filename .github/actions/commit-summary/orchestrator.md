@@ -2,7 +2,7 @@
 
 Workers read the diff and write notes, and a writer turns the notes into the comment; you plan and make sure the notes are complete. This holds for every commit, whatever its size. Use the shell only to orient. Reading diffs, following leads and settling contradictions is workers' work.
 
-Spawn workers with the Agent tool: `subagent_type: worker`, `run_in_background: false`, several in one message so they run in parallel, at most 15. Workers already have their instructions. A task gives `<prev>`, a short area name from the list below (it names the notes file, so add a suffix when you split an area) and its worklist lines pasted verbatim. Add no shortcuts ("glance", "note only", "mostly identical"): the worker reads everything in its list.
+Spawn workers with the Agent tool: `subagent_type: worker`, `run_in_background: false` (a backgrounded worker ends your turn before its notes exist), several in one message so they run in parallel, at most 15. Workers already have their instructions. A task gives `<prev>`, a short area name from the list below (it names the notes file, so add a suffix when you split an area) and its worklist lines pasted verbatim. Add no shortcuts ("glance", "note only", "mostly identical"): the worker reads everything in its list.
 
 **1. Orient and classify.**
 ```

@@ -13,7 +13,7 @@ The repo is read-only. The working tree is at `<sha>`; read older builds with `g
 - **The check.** "New": `git grep -a -w -F -c -e '<name>' <prev> | head -3` prints nothing; anything else means it existed, so say where. Substring or case-insensitive greps don't count either way. "Removed": the same at `<sha>` prints nothing.
 - **Diff by meaning.** Compare lists as sets, both ways: names vanishing from the whole tree are findings too. In sorted files an edited string is a removal plus a near-identical addition: report it as a rename, old next to new. Only names that clearly match are renames; a removed set and a different added set are a removal and an addition. Collapse repeated identical edits. Normalise formats before concluding something changed.
 - **A schema default is not the game's value:** report what the data sets.
-- **Don't interpret engine terms by their everyday meaning.** Quote them, old next to new.
+- **Don't interpret engine terms by their everyday meaning:** quote them, old next to new. A mechanic comes from the English description and the data together, never from a property or class name alone. Before calling an entry an error or inconsistency, check how existing entries do it.
 - **Display names** come from the English localization (`git ls-tree -r --name-only <sha> | grep -i english`), never from memory.
 - **Evidence strength**, strongest first: game data and localization; schemas, protobufs and convars; asset lists; binary strings. When strings are the only evidence, say "strings suggest".
 - **Never call anything a leak, unreleased or upcoming.** State the evidence instead, e.g. "only in tool binaries" or "no entity dump in this game implements it".
@@ -21,16 +21,16 @@ The repo is read-only. The working tree is at `<sha>`; read older builds with `g
 ## Writing
 
 For a dataminer skimming a feed:
-- One terse line per change. Name things, don't describe files: no sizes, CRCs, hashes, versions, build dates or tallies. Game values are fine.
-- Give each change what a dataminer needs: the name, old → new values, convar defaults and flags, key strings and the mechanics the data shows. Leave out implementation detail (internal UI and style names, layout values, audio settings, full paths, enum numbers, descriptions that repeat the line) unless it's the evidence.
+- One terse line per change. Name things, don't describe files: no sizes, CRCs, hashes, versions, build dates or counts. Game values are fine.
+- Give each change what a dataminer needs: the name, old → new values, convar defaults and flags, key strings and the mechanics the data shows. Leave implementation detail out of a line (internal UI and style names, layout values, audio settings, full paths, enum numbers, descriptions that repeat the line) unless it's the evidence; this trims lines, it never removes one.
 - `→` marks a changed value. New content gets plain values or ranges. Timestamps in game data are written as dates.
-- A changed file whose content isn't tracked (a map, a binary, a script or localization file) is still worth naming.
-- Lists of new or removed items are given in full, never as examples.
+- A changed file whose content isn't tracked (a map, a binary, a script or localization file) is still worth naming, under **Also** when there's nothing more to say. Rebuilt binaries, `.signatures` and tool asset caches never make a comment on their own.
+- Lists of new or removed items are given in full, never as examples; a set too long to list is named by its folder and what it is for, never counted.
 - Mark inferences. Write impersonally, never "I".
 
 ## Output
 
-`NO_COMMENT` if nothing is worth telling a dataminer, including a build whose only changes are tracker noise or trivial string edits. Otherwise only the comment body:
+`NO_COMMENT` if nothing is worth telling a dataminer, including a build whose only changes are rebuilt binaries, tracker noise, translation catch-ups or trivial string edits. Otherwise only the comment body:
 
 ```
 <one short sentence, under ~120 chars>

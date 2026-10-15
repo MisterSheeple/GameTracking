@@ -39,19 +39,42 @@ jobs:
           with:
             fetch-depth: 1
 
+        # The Go module lives in a submodule, so there is no go.mod at the root for setup-go to cache
         - name: Setup Go
+          id: setup-go
+          background: true
           uses: actions/setup-go@v7
           with:
             go-version: 'stable'
+            cache: false
 
         - name: Setup .NET
+          id: setup-dotnet
+          background: true
           uses: actions/setup-dotnet@v6
           with:
             dotnet-version: '10.x'
 
+        - name: Update submodules
+          shell: bash
+          run: ./tools/build.sh submodules
+
+        # DumpSource2 only needs CMake and the compiler from the runner image
+        - name: Build DumpSource2
+          id: dumpsource2
+          background: true
+          shell: bash
+          run: ./tools/build.sh dumpsource2
+
+        - name: Wait for Go and .NET
+          wait: [setup-go, setup-dotnet]
+
         - name: Build tools
           shell: bash
-          run: ./tools/build.sh
+          run: ./tools/build.sh --skip submodules --skip dumpsource2
+
+        - name: Wait for DumpSource2
+          wait: dumpsource2
 
         - name: Create archive
           shell: bash

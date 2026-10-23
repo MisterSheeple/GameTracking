@@ -125,33 +125,33 @@ jobs:
 
         # Post-processing
 
-        - name: Set commit status
-          if: always() && steps.before.outputs.sha
-          id: set-status
-          working-directory: ${{ github.workspace }}/tracked_game
-          shell: bash
-          run: |
-            NEW_SHA=$(git rev-parse HEAD)
-            echo "sha=$NEW_SHA" >> $GITHUB_OUTPUT
-
-            if [[ "$NEW_SHA" == "${{ steps.before.outputs.sha }}" ]]; then
-              echo "No new commit was pushed, skipping status"
-              exit 0
-            fi
-
-            if [[ "${{ job.status }}" == "success" && "${{ steps.update.outcome }}" == "success" ]]; then
-              STATE="success"
-            else
-              STATE="failure"
-            fi
-
-            gh api "repos/${{ github.repository }}/statuses/$NEW_SHA" \
-              -f state="$STATE" \
-              -f target_url="$GITHUB_SERVER_URL/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
-              -f description="GameTracking" \
-              -f context="GameTracking"
-          env:
-            GH_TOKEN: ${{ github.token }}
+#        - name: Set commit status
+#          if: always() && steps.before.outputs.sha
+#          id: set-status
+#          working-directory: ${{ github.workspace }}/tracked_game
+#          shell: bash
+#          run: |
+#            NEW_SHA=$(git rev-parse HEAD)
+#            echo "sha=$NEW_SHA" >> $GITHUB_OUTPUT
+#
+#            if [[ "$NEW_SHA" == "${{ steps.before.outputs.sha }}" ]]; then
+#              echo "No new commit was pushed, skipping status"
+#              exit 0
+#            fi
+#
+#            if [[ "${{ job.status }}" == "success" && "${{ steps.update.outcome }}" == "success" ]]; then
+#              STATE="success"
+#            else
+#              STATE="failure"
+#            fi
+#
+#            gh api "repos/${{ github.repository }}/statuses/$NEW_SHA" \
+#              -f state="$STATE" \
+#              -f target_url="$GITHUB_SERVER_URL/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+#              -f description="GameTracking" \
+#              -f context="GameTracking"
+#          env:
+#            GH_TOKEN: ${{ github.token }}
 
         - name: Fail if update script failed
           if: ${{ steps.update.outcome == 'failure' }}

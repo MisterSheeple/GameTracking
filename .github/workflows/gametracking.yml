@@ -112,7 +112,7 @@ jobs:
             . ../common.sh
             wget https://holo-packages.steamos.cloud/archlinux-deckard-hotfixes/deckard-steamvr-rel-r26088350%2B24cb4748-1-aarch64.pkg.tar.zst
             tar --zstd -xvf deckard-steamvr-rel-r26088350+24cb4748-1-aarch64.pkg.tar.zst
-            find . -maxdepth 1 -not -name 'opt' -print0 | xargs -0 rm -rf --
+            find . -maxdepth 1 -not -name 'opt' -not -name '.' -not -name '..' -print0 | xargs -0 rm -rf --
             mv opt/steamvr/* .
             rm -rf opt
 

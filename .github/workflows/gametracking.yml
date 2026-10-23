@@ -48,7 +48,7 @@ jobs:
           uses: actions/checkout@v7
           with:
             fetch-depth: 1
-            repository: 'SteamTracking/GameTracking'
+            repository: 'MisterSheeple/GameTracking'
 
         - name: Download pre-built tools
           shell: bash
@@ -120,12 +120,16 @@ jobs:
             ! -name '.github' \
             -exec rm -rf {} \;
 
-        - name: Download app ${{ inputs.appid }}
+        - name: Download SteamVR
           working-directory: ${{ github.workspace }}/tracked_game
           shell: bash
           run: |
             . ../common.sh
-            $STEAM_FILE_DOWNLOADER_PATH track --username "${{ secrets.STEAM_USERNAME }}" --password "${{ secrets.STEAM_PASSWORD }}" --appid "${{ inputs.appid }}" --output . --branch "${{ inputs.branch }}" ${{ inputs.save-manifest && '--save-all-manifests' || '' }}
+            wget https://holo-packages.steamos.cloud/archlinux-deckard-hotfixes/deckard-steamvr-rel-r26088350%2B24cb4748-1-aarch64.pkg.tar.zst
+            tar --zstd -xvf deckard-steamvr-rel-r26088350+24cb4748-1-aarch64.pkg.tar.zst
+            find . -maxdepth 1 -not -name 'opt' -print0 | xargs -0 rm -rf --
+            mv opt/steamvr/* .
+            rm -rf opt
 
         - name: Run update script
           id: update

@@ -3,9 +3,6 @@ name: GameTracking
 on:
     workflow_call:
         inputs:
-            appid:
-                required: true
-                type: string
             branch:
                 required: false
                 type: string
@@ -19,14 +16,6 @@ on:
                 type: boolean
                 default: true
             reset-gametracking:
-                required: false
-                type: boolean
-                default: false
-            dumpsource2-schema-json:
-                required: false
-                type: string
-                default: ''
-            dispatch-source2wiki:
                 required: false
                 type: boolean
                 default: false
@@ -167,72 +156,6 @@ jobs:
               -f context="GameTracking"
           env:
             GH_TOKEN: ${{ github.token }}
-
-        - name: Create SchemaExplorer token
-          id: schemaexplorer-token
-          if: ${{ inputs.dumpsource2-schema-json != '' && github.repository_owner == 'SteamTracking' && github.ref_name == github.event.repository.default_branch && steps.before.outputs.sha != steps.set-status.outputs.sha }}
-          uses: actions/create-github-app-token@v3
-          with:
-            client-id: ${{ secrets.STEAMTRACKING_APP_CLIENT_ID }}
-            private-key: ${{ secrets.STEAMTRACKING_APP_PRIVATE_KEY }}
-            owner: ValveResourceFormat
-            repositories: SchemaExplorer
-            permission-contents: write
-
-        - name: Checkout DumpSource2 JSON Repo
-          if: ${{ inputs.dumpsource2-schema-json != '' && github.repository_owner == 'SteamTracking' && github.ref_name == github.event.repository.default_branch && steps.before.outputs.sha != steps.set-status.outputs.sha }}
-          uses: actions/checkout@v7
-          with:
-            fetch-depth: 1
-            path: dumps2_json
-            repository: 'ValveResourceFormat/SchemaExplorer'
-            token: ${{ steps.schemaexplorer-token.outputs.token }}
-
-        - name: Push DumpSource2 JSON
-          if: ${{ inputs.dumpsource2-schema-json != '' && github.repository_owner == 'SteamTracking' && github.ref_name == github.event.repository.default_branch && steps.before.outputs.sha != steps.set-status.outputs.sha }}
-          working-directory: ${{ github.workspace }}/dumps2_json/schemas
-          shell: bash
-          run: |
-            "${{ github.workspace }}/tools/push_schema_json.sh" \
-              "${{ inputs.dumpsource2-schema-json }}" \
-              "${{ github.workspace }}/tracked_game" \
-              "https://github.com/${{ github.repository }}/commit/${{ steps.set-status.outputs.sha }}"
-
-        - name: Create Protobufs token
-          id: protobufs-token
-          if: ${{ github.repository_owner == 'SteamTracking' && github.ref_name == github.event.repository.default_branch }}
-          uses: actions/create-github-app-token@v3
-          with:
-            client-id: ${{ secrets.STEAMTRACKING_APP_CLIENT_ID }}
-            private-key: ${{ secrets.STEAMTRACKING_APP_PRIVATE_KEY }}
-            owner: SteamTracking
-            repositories: Protobufs
-            permission-contents: write
-
-        - name: Dispatch sync to ValveProtobufs
-          if: ${{ github.repository_owner == 'SteamTracking' && github.ref_name == github.event.repository.default_branch }}
-          run: gh api repos/SteamTracking/Protobufs/dispatches -f event_type=sync
-          env:
-                GH_TOKEN: ${{ steps.protobufs-token.outputs.token }}
-
-        - name: Dispatch app-update to Source2Wiki
-          if: ${{ inputs.dispatch-source2wiki && env.GH_TOKEN != '' && github.ref_name == github.event.repository.default_branch && steps.before.outputs.sha != steps.set-status.outputs.sha }}
-          run: gh api repos/Source2Wiki/Source2Wiki/dispatches -f event_type=app-update -F "client_payload[owner]={owner}" -F "client_payload[repo]={repo}"
-          env:
-                GH_TOKEN: ${{ secrets.DISPATCH_TOKEN_SOURCE2WIKI }}
-
-        - name: Summarize commit
-          if: ${{ (env.ANTHROPIC_FEDERATION_RULE_ID != '' || env.CLAUDE_CODE_OAUTH_TOKEN != '') && steps.set-status.outputs.sha && steps.before.outputs.sha != steps.set-status.outputs.sha }}
-          continue-on-error: true
-          timeout-minutes: 120
-          uses: ./.github/actions/commit-summary
-          with:
-            sha: ${{ steps.set-status.outputs.sha }}
-          env:
-            ANTHROPIC_FEDERATION_RULE_ID: ${{ secrets.ANTHROPIC_FEDERATION_RULE_ID }}
-            ANTHROPIC_ORGANIZATION_ID: ${{ secrets.ANTHROPIC_ORGANIZATION_ID }}
-            ANTHROPIC_SERVICE_ACCOUNT_ID: ${{ secrets.ANTHROPIC_SERVICE_ACCOUNT_ID }}
-            CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
 
         - name: Fail if update script failed
           if: ${{ steps.update.outcome == 'failure' }}

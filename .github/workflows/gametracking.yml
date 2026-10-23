@@ -19,11 +19,7 @@ on:
                 required: false
                 type: boolean
                 default: false
-        secrets:
-            STEAM_USERNAME:
-                required: true
-            STEAM_PASSWORD:
-                required: true
+
 jobs:
     gametracking-setup:
         runs-on: ${{ inputs.run-on-windows && 'windows-latest' || 'ubuntu-latest' }}
